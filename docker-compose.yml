@@ -1,0 +1,70 @@
+services:
+  coordinator:
+    build: .
+    image: mcr-study:latest
+    environment:
+      SERVICE_ROLE: coordinator
+      PORT: "8000"
+      COORDINATOR_DB: /data/coordinator.sqlite3
+      HOSPITAL_A_URL: http://hospital-a:8000
+      HOSPITAL_B_URL: http://hospital-b:8000
+      COORDINATOR_TIMEOUT: "10"
+      COORDINATOR_MAX_ATTEMPTS: "3"
+      COORDINATOR_POLL_INTERVAL: "0.2"
+      COORDINATOR_BUSY_WAIT: "0.5"
+      SNAPSHOT_TTL_SECONDS: "3600"
+    ports:
+      - "8000:8000"
+    volumes:
+      - coordinator-data:/data
+    depends_on:
+      - hospital-a
+      - hospital-b
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request;urllib.request.urlopen('http://localhost:8000/health')"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  hospital-a:
+    image: mcr-study:latest
+    build: .
+    environment:
+      SERVICE_ROLE: hospital
+      PORT: "8000"
+      HOSPITAL_ID: "A"
+      HOSPITAL_DB: /data/hospital.sqlite3
+      SNAPSHOT_TTL_SECONDS: "3600"
+    ports:
+      - "8101:8000"
+    volumes:
+      - hospital-a-data:/data
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request;urllib.request.urlopen('http://localhost:8000/health')"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  hospital-b:
+    image: mcr-study:latest
+    build: .
+    environment:
+      SERVICE_ROLE: hospital
+      PORT: "8000"
+      HOSPITAL_ID: "B"
+      HOSPITAL_DB: /data/hospital.sqlite3
+      SNAPSHOT_TTL_SECONDS: "3600"
+    ports:
+      - "8102:8000"
+    volumes:
+      - hospital-b-data:/data
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request;urllib.request.urlopen('http://localhost:8000/health')"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+volumes:
+  coordinator-data:
+  hospital-a-data:
+  hospital-b-data:
